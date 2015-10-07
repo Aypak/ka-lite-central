@@ -41,7 +41,7 @@ from django.core.management import call_command
 from kalite.contentload.management.commands.generate_assessment_zips import convert_urls
 from kalite.i18n import *   # put this first so ... can override some names.  bad bad bad (bcipolli)
 from ... import *
-from kalite.version import SHORTVERSION
+from kalite.version import SHORTVERSION, VERSION
 from fle_utils.general import datediff, ensure_dir, softload_json, version_diff
 from kalite.updates import get_all_remote_video_sizes
 
@@ -662,10 +662,22 @@ def generate_metadata(package_metadata=None, version=SHORTVERSION, force_version
         stored_meta = softload_json(metadata_filepath, logger=logging.info, errmsg="Could not open %s language pack metadata" % lc)
 
         updated_meta = package_metadata.get(lang_code_ietf) or {}
+
+        # Incoming hack (aron): So the distributed server still
+        # compares versions using the shortversion. Now we can't just
+        # hardcode the long version as the version in the metadata,
+        # since this same script is used to build multiple language
+        # pack versions.  So instead, what we're gonna do is append
+        # .999 as the patch version, ensuring that this language pack
+        # is always the higher one. Hopefully I can burn this down
+        # soon, and refactor the distributed server side for 0.16.
+        # The proper fix for this btw is to fix the software version
+        # comparison on the distributed server to use SHORTVERSION.
+        software_version = "%.999" % version
         updated_meta.update({
             "code": lang_code_ietf,  # user-facing code
             "name": lang_name,
-            "software_version": version,
+            "software_version": software_version,
         })
 
         try:
